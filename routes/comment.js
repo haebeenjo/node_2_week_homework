@@ -8,7 +8,7 @@ const app = express();
 app.use(cookieParser());
 
 // 댓글 목록 조회
-router.get('/comments/:postId', async (req, res) => {
+router.get('/comments/:post_id', async (req, res) => {
   const { post_id } = req.params;
   const comments = await Comment.findAll({
     where: { post_id },
@@ -63,7 +63,7 @@ router.put('/comments/:comment_id', authMiddleWare, async (req, res) => {
 });
 
 // 댓글 삭제
-router.delete('/comments/:_commentId', authMiddleWare, async (req, res) => {
+router.delete('/comments/:_comment_id', authMiddleWare, async (req, res) => {
   try{
     const { comment_id } = req.params;
     const deleteComment = await comment.findOne({ where: { id: comment_id } });

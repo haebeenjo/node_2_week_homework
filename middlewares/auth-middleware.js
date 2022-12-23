@@ -10,10 +10,10 @@ module.exports = async(req, res, next) => {
     
     const { id } = jwt.verify(token, "mysecretkey");
 
-    const user = await User.findByPk(id);
+    const  user  = await User.findByPk(id);
 
-    res.locals.user = user;
-    console.log(user);
+    res.locals.user = user.id;
+    console.log("111",user.id);
     next();
   } catch(err) {
   res.status(401).send({errorMessage: '로그인 후 이용 가능한 기능입니다.'});

@@ -11,7 +11,7 @@ app.use(cookieParser());
 // 게시글 작성
 router.post("/posts", authMiddleware, async (req,res) =>{
   try {
-    const { owner_id }= res.locals.user.dataValues;
+    const owner_id = res.locals.user;
     const { title, content } = req.body;
     if (!title) {
       return res.status(400).json({errorMessage:"제목을 작성해주세요."})
@@ -19,9 +19,16 @@ router.post("/posts", authMiddleware, async (req,res) =>{
     if (!content) {
       return res.status(400).json({errorMessage:"내용을 작성해주세요."})
     }
-
-    await Post.create({ title, content, owner_id })
-    res.status(200).json({ message: "성공적으로 게시글 작성이 완료되었습니다." })
+    console.log("error:",owner_id);
+    await Post.create({ title:title, content:content, owner_id })
+    .then((result) =>{
+        // console.log(result);
+        res.status(200).json({ message: "성공적으로 게시글 작성이 완료되었습니다." })
+    })
+    .catch((err)=> {
+        console.log("error ",err);
+        res.status(500).json({ message: "게시글 작성 실패"})
+    })
   }
   catch (err){
     console.log(err)
@@ -32,12 +39,22 @@ router.post("/posts", authMiddleware, async (req,res) =>{
 
 // 게시글 전체 조회
 router.get("/posts", async (req,res) => {
-  
   try {
-    const posts = await Post.findAll({});
-    res.json({posts});
+    await Post.findAll({
+        attributes: ['id', 'title', 'content', 'createdAt', 'updatedAt'],
+    })
+    .then((posts) => {
+        console.log(posts);
+        res.status(200).json({posts})
+    })
+    .catch((err)=> {
+        console.log("error =",err)
+        res.status(500).json({ message: "게시글 조회 실패"})
+
+    })
   }
-  catch {
+  catch(err) {
+    console.log(err)
     res.status(400).json({errorMessage:"게시글 조회에 실패하였습니다."})
   }
 })
@@ -46,30 +63,36 @@ router.get("/posts", async (req,res) => {
 router.get("/posts/:post_id", async (req,res) => {
   try {
     const { post_id: id } = req.params;
-    const post = await Post.findOne({
+    const posts = await Post.findOne({
       where: { id },
+      attributes: ['id', 'title', 'content', 'createdAt', 'updatedAt'],
       include: [
         { 
           model : User,
-          attributes: ['nickname']
+          attributes: ['nickname'],
+          require: true,
         },
-        { 
-          model : Comment,
-          attributes : ['comment', 'createdAt'],
-          include : [
-            {
-              model : User,
-              attributes : ['nickname']
-            }
-          ]
-        }
+        // { 
+        //   model : Comment,
+        //   attributes : ['comment', 'createdAt'],
+        //   include : [
+        //     {
+        //       model : User,
+        //       attributes : ['nickname']
+        //     }
+        //   ]
+        // }
       ]
-    });
-    if (!post){
-      return res.status(400).json({errorMessage:"게시글 조회에 실패하였습니다."})
-    }
+    })
+    .then((posts) => {
+        console.log(posts);
+        res.status(200).json({posts})
+    })
+    .catch((err)=> {
+        console.log("error =",err)
+        res.status(500).json({ message: "게시글 조회 실패"})
 
-    res.json({post})
+    })
   }
   catch (err) {
     console.log(err)
@@ -78,9 +101,9 @@ router.get("/posts/:post_id", async (req,res) => {
 })
 
 // 게시글 수정
-router.put("/posts/:post_id", authMiddleware,async (req,res) => {
+router.put("/posts/:post_id", authMiddleware, async (req,res) => {
   try{
-    const user_id = res.locals.user;
+    const owner_id = res.locals.user;
     const {post_id: id} = req.params;
     const {title, content} = req.body;
 
@@ -91,16 +114,19 @@ router.put("/posts/:post_id", authMiddleware,async (req,res) => {
       return res.status(400).json({errorMessage:"내용 형식이 올바르지 않습니다."})
     }
   
-    const result = await Post.findOne({where: {id, owner_id:user_id}})
-    
-    if (!result) {
-      return res.status(400).json({errorMessage:"게시글 작성자가 아닙니다."})
-    }
-
-    result.title = title;
-    result.content = content;
-    await result.save();
-    res.json({"Message":"게시글 수정 완료"})
+    await Post.findOne({where: {id:id, owner_id:owner_id}})
+    .then((posts) => {
+        // console.log("posts", posts)
+        posts.title = title;
+        // console.log("posts.title", posts.title)
+        posts.content = content;
+        posts.save();
+        res.status(200).json({ message:"게시글 수정 완료" })
+    })
+    .catch((err) => {
+        console.log(err)
+        res.status(500).json({ message: "게시글 수정 실패"})
+    })
   }
   catch(err){
     res.status(400).json({errorMessage:"게시글 수정에 실패하였습니다."})
@@ -110,14 +136,14 @@ router.put("/posts/:post_id", authMiddleware,async (req,res) => {
 //게시글 삭제
 router.delete("/posts/:post_id", authMiddleware, async (req,res) => {
   try {
-    const user_id = res.locals.user;
+    const owner_id = res.locals.user;
     const {post_id: id} = req.params;
 
     const find = await Post.findByPk(id)
     if (!find) {
       return res.status(404).json({errorMessage:"게시글이 존재하지 않습니다"})
     }
-    const result = await Post.findOne({where: {id,owner_id:user_id}})
+    const result = await Post.findOne({where: {id:id, owner_id:owner_id}})
     if (!result) {
       return res.status(401).json({errorMessage:"게시글 작성자가 아닙니다"})
     }
