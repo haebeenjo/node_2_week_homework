@@ -1,7 +1,7 @@
 const express = require("express");
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
 
-const { User, Post, Comment } = require("../models");
+const { User, Post } = require("../models");
 const authMiddleware  = require("../middlewares/auth-middleware");
 
 const app = express();
@@ -91,7 +91,6 @@ router.get("/posts/:post_id", async (req,res) => {
     .catch((err)=> {
         console.log("error =",err)
         res.status(500).json({ message: "게시글 조회 실패"})
-
     })
   }
   catch (err) {
@@ -154,7 +153,7 @@ router.delete("/posts/:post_id", authMiddleware, async (req,res) => {
   catch {
     res.status(400).json({errorMessage:"게시글 삭제에 실패하였습니다."})
   }
-})
+});
 
 
 module.exports = router;
